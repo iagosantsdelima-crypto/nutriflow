@@ -476,7 +476,7 @@ if not st.session_state.usuario_logado:
         ⚡ NutriFlow
       </div>
       <div style="color:#334155;font-size:0.82rem;text-transform:uppercase;letter-spacing:0.12em;margin-top:0.3rem">
-        Seu App de dieta e treinos
+        Seu Strava de dieta e treinos
       </div>
     </div>""", unsafe_allow_html=True)
 
@@ -893,29 +893,42 @@ with tab1:
         for tipo in TIPOS_REFEICAO:
             itens   = [(i, r) for i, r in enumerate(refeicoes) if r.get("tipo") == tipo]
             tot_t   = sum(r["calorias"] for _, r in itens)
-            kcal_s  = f'<span style="font-family:Syne,sans-serif;font-size:0.82rem;font-weight:700;color:#22d3ee">{tot_t:.0f} kcal</span>' if itens else ''
+            kcal_s  = f'{tot_t:.0f} kcal' if itens else ''
 
-            # Header do tipo de refeição — HTML completo e autônomo
-            st.markdown(f"""<div class="meal-header">
-              <span class="meal-title">{tipo}</span>
-              {kcal_s}
-            </div>""", unsafe_allow_html=True)
+            # Header do tipo de refeição
+            hd1, hd2 = st.columns([7, 3])
+            with hd1:
+                st.markdown(f'<div class="meal-title" style="padding:0.45rem 0.2rem 0.2rem">{tipo}</div>', unsafe_allow_html=True)
+            with hd2:
+                if kcal_s:
+                    st.markdown(f'<div class="meal-kcal" style="padding:0.45rem 0.2rem 0.2rem;text-align:right">{kcal_s}</div>', unsafe_allow_html=True)
 
             if not itens:
-                st.markdown('<div style="font-size:0.78rem;color:#1e2a3a;font-style:italic;padding:0.15rem 0.8rem 0.6rem">Nenhum registro</div>', unsafe_allow_html=True)
+                st.markdown('<div style="font-size:0.78rem;color:#334155;font-style:italic;padding:0.1rem 0.2rem 0.5rem">Nenhum registro</div>', unsafe_allow_html=True)
             else:
                 for orig_i, r in itens:
-                    fr1, fr2 = st.columns([7, 1])
+                    fr1, fr2 = st.columns([8, 1])
                     with fr1:
-                        com_h = f'<div style="font-size:0.7rem;color:#1e2a3a;font-style:italic">💬 {r["comentario"]}</div>' if r.get("comentario") else ""
-                        st.markdown(f"""<div class="food-row">
-                          <div>
-                            <div class="food-row-name">{r['alimento']}</div>
-                            <div class="food-row-qty">{r['quantidade']} {r['unidade']}{" · P:"+str(r.get('proteina',0))+"g" if r.get('proteina',0) else ""}</div>
-                            {com_h}
-                          </div>
-                          <div class="food-row-kcal">{r['calorias']:.0f}</div>
-                        </div>""", unsafe_allow_html=True)
+                        alimento_nome = r['alimento']
+                        alimento_qtd  = r['quantidade']
+                        alimento_uni  = r['unidade']
+                        alimento_prot = r.get('proteina', 0)
+                        alimento_kcal = r['calorias']
+                        prot_txt = f" · P:{alimento_prot}g" if alimento_prot else ""
+                        com_h = ""
+                        if r.get("comentario"):
+                            com_h = f'<div style="font-size:0.7rem;color:#475569;font-style:italic;margin-top:0.15rem">💬 {r["comentario"]}</div>'
+                        st.markdown(
+                            f'<div class="food-row">'
+                            f'<div>'
+                            f'<div class="food-row-name">{alimento_nome}</div>'
+                            f'<div class="food-row-qty">{alimento_qtd} {alimento_uni}{prot_txt}</div>'
+                            f'{com_h}'
+                            f'</div>'
+                            f'<div class="food-row-kcal">{alimento_kcal:.0f}</div>'
+                            f'</div>',
+                            unsafe_allow_html=True
+                        )
                         if r.get("foto") and os.path.exists(r["foto"]):
                             with st.expander("📷 ver foto"):
                                 st.image(r["foto"], use_container_width=True)
@@ -925,7 +938,7 @@ with tab1:
                             save()
                             st.rerun()
 
-            st.markdown('<div style="margin-bottom:0.6rem"></div>', unsafe_allow_html=True)
+            st.markdown('<div style="margin-bottom:0.5rem"></div>', unsafe_allow_html=True)
 
         if refeicoes:
             saldo = kcal_dia - META
