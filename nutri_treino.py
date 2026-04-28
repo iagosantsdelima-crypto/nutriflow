@@ -169,7 +169,7 @@ if "data" not in st.session_state:
 data      = st.session_state.data
 today_str = str(date.today())
 
-META_CALORIAS = 2500
+META_CALORIAS = 2100
 
 def total_kcal_dia(dia_str: str) -> float:
     return sum(r["calorias"] for r in data["alimentacao"].get(dia_str, []))
