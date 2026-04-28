@@ -476,7 +476,7 @@ if not st.session_state.usuario_logado:
         ⚡ NutriFlow
       </div>
       <div style="color:#334155;font-size:0.82rem;text-transform:uppercase;letter-spacing:0.12em;margin-top:0.3rem">
-        Seu Strava de dieta e treinos
+        Seu App de dieta e treinos
       </div>
     </div>""", unsafe_allow_html=True)
 
