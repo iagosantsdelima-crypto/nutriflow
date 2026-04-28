@@ -1,8 +1,10 @@
 import streamlit as st
 import json
 import os
+import base64
 from datetime import date, timedelta
-from collections import defaultdict
+from pathlib import Path
+import pandas as pd
 
 # ── Configuração da página ──────────────────────────────────────────────────
 st.set_page_config(
@@ -12,9 +14,12 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# ── Arquivo de dados local ──────────────────────────────────────────────────
-DATA_FILE = "nutriflow_data.json"
+# ── Pastas e arquivos ───────────────────────────────────────────────────────
+DATA_FILE   = "nutriflow_data.json"
+PHOTOS_DIR  = Path("nutriflow_fotos")
+PHOTOS_DIR.mkdir(exist_ok=True)
 
+# ── Carregar / salvar dados ─────────────────────────────────────────────────
 def load_data() -> dict:
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r", encoding="utf-8") as f:
@@ -25,228 +30,155 @@ def save_data(data: dict):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-# ── CSS personalizado – dark mode premium ──────────────────────────────────
+def save_photo(uploaded_file, categoria: str, dia_str: str) -> str:
+    """Salva foto e retorna o caminho relativo."""
+    filename = f"{categoria}_{dia_str}_{uploaded_file.name}"
+    filepath = PHOTOS_DIR / filename
+    with open(filepath, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+    return str(filepath)
+
+# ── CSS ─────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
-  /* Reset e base */
   html, body, [class*="css"] {
     font-family: 'DM Sans', sans-serif;
     background-color: #0d0f14 !important;
     color: #e8eaf0 !important;
   }
-
-  /* Remove barra branca do topo */
   header[data-testid="stHeader"] { background: transparent !important; }
-  .block-container { padding-top: 2rem !important; max-width: 1100px; }
+  .block-container { padding-top: 2rem !important; max-width: 1140px; }
 
-  /* Título principal */
   .hero-title {
     font-family: 'Syne', sans-serif;
-    font-size: 2.6rem;
-    font-weight: 800;
+    font-size: 2.6rem; font-weight: 800;
     letter-spacing: -0.03em;
     background: linear-gradient(135deg, #00e5a0 0%, #00b4d8 60%, #7b5ea7 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 0;
-    line-height: 1.1;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; line-height: 1.1; margin-bottom: 0;
   }
   .hero-sub {
-    font-size: 0.9rem;
-    color: #6b7280;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    margin-top: 0.2rem;
+    font-size: 0.9rem; color: #6b7280;
+    letter-spacing: 0.08em; text-transform: uppercase; margin-top: 0.2rem;
   }
 
-  /* Cards */
   .card {
-    background: #161923;
-    border: 1px solid #1f2535;
-    border-radius: 16px;
-    padding: 1.5rem 1.6rem;
-    margin-bottom: 1rem;
-    box-shadow: 0 4px 30px rgba(0,0,0,0.4);
+    background: #161923; border: 1px solid #1f2535;
+    border-radius: 16px; padding: 1.5rem 1.6rem;
+    margin-bottom: 1rem; box-shadow: 0 4px 30px rgba(0,0,0,0.4);
   }
   .card-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: #e8eaf0;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    font-family: 'Syne', sans-serif; font-size: 1.05rem;
+    font-weight: 700; color: #e8eaf0; margin-bottom: 1rem;
   }
 
-  /* Métricas customizadas */
   .metric-box {
-    background: #1a1f2e;
-    border: 1px solid #252d42;
-    border-radius: 12px;
-    padding: 1rem 1.2rem;
-    text-align: center;
+    background: #1a1f2e; border: 1px solid #252d42;
+    border-radius: 12px; padding: 1rem 1.2rem; text-align: center;
   }
   .metric-value {
-    font-family: 'Syne', sans-serif;
-    font-size: 2rem;
-    font-weight: 800;
-    color: #00e5a0;
-    line-height: 1;
+    font-family: 'Syne', sans-serif; font-size: 2rem;
+    font-weight: 800; color: #00e5a0; line-height: 1;
   }
   .metric-label {
-    font-size: 0.75rem;
-    color: #6b7280;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    margin-top: 0.3rem;
+    font-size: 0.75rem; color: #6b7280;
+    text-transform: uppercase; letter-spacing: 0.07em; margin-top: 0.3rem;
   }
-  .metric-value.accent-blue { color: #00b4d8; }
+  .metric-value.accent-blue   { color: #00b4d8; }
   .metric-value.accent-purple { color: #a78bfa; }
 
-  /* Badges de refeição */
   .food-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #1a1f2e;
-    border-radius: 10px;
-    padding: 0.65rem 1rem;
-    margin-bottom: 0.45rem;
-    border-left: 3px solid #00e5a0;
-    font-size: 0.88rem;
+    display: flex; justify-content: space-between; align-items: center;
+    background: #1a1f2e; border-radius: 10px;
+    padding: 0.65rem 1rem; margin-bottom: 0.45rem;
+    border-left: 3px solid #00e5a0; font-size: 0.88rem;
   }
-  .food-name { font-weight: 500; color: #d1d5db; }
-  .food-qty  { color: #6b7280; font-size: 0.8rem; }
-  .food-kcal { font-family: 'Syne', sans-serif; font-weight: 700; color: #00e5a0; font-size: 0.95rem; }
+  .food-name  { font-weight: 500; color: #d1d5db; }
+  .food-qty   { color: #6b7280; font-size: 0.78rem; margin-top: 2px; }
+  .food-tipo  { font-size: 0.75rem; color: #00b4d8; font-weight: 500; margin-top: 1px; }
+  .food-kcal  { font-family: 'Syne', sans-serif; font-weight: 700; color: #00e5a0; font-size: 0.95rem; }
 
-  /* Treino badges */
   .treino-item {
-    background: #1a1f2e;
-    border-radius: 10px;
-    padding: 0.7rem 1rem;
-    margin-bottom: 0.45rem;
-    border-left: 3px solid #7b5ea7;
-    font-size: 0.88rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    background: #1a1f2e; border-radius: 10px;
+    padding: 0.7rem 1rem; margin-bottom: 0.45rem;
+    border-left: 3px solid #7b5ea7; font-size: 0.88rem;
+    display: flex; justify-content: space-between; align-items: center;
   }
+  .treino-hoje  { border-left: 3px solid #00e5a0 !important; background: #1a2e24 !important; }
   .treino-ok    { color: #00e5a0; font-weight: 600; }
-  .treino-miss  { color: #f87171; font-weight: 600; }
+  .treino-miss  { color: #6b7280; font-weight: 500; }
 
-  /* Inputs */
-  .stTextInput > div > div > input,
-  .stNumberInput > div > div > input,
-  .stSelectbox > div > div,
-  .stTextArea > div > div > textarea {
-    background: #1a1f2e !important;
-    border: 1px solid #252d42 !important;
-    border-radius: 10px !important;
-    color: #e8eaf0 !important;
-    font-family: 'DM Sans', sans-serif !important;
-  }
-
-  /* Botões */
-  .stButton > button {
-    background: linear-gradient(135deg, #00e5a0, #00b4d8) !important;
-    color: #0d0f14 !important;
-    font-family: 'Syne', sans-serif !important;
-    font-weight: 700 !important;
-    border: none !important;
-    border-radius: 10px !important;
-    padding: 0.55rem 1.4rem !important;
-    font-size: 0.9rem !important;
-    letter-spacing: 0.02em !important;
-    transition: opacity 0.2s !important;
-    box-shadow: 0 0 20px rgba(0,229,160,0.2) !important;
-  }
-  .stButton > button:hover { opacity: 0.85 !important; }
-
-  /* Botão deletar */
-  .stButton.delete > button {
-    background: linear-gradient(135deg, #f87171, #ef4444) !important;
-    box-shadow: 0 0 15px rgba(248,113,113,0.2) !important;
-  }
-
-  /* Tabs */
-  .stTabs [data-baseweb="tab-list"] {
-    background: #161923 !important;
-    border-radius: 12px !important;
-    padding: 4px !important;
-    gap: 4px !important;
-    border: 1px solid #1f2535 !important;
-  }
-  .stTabs [data-baseweb="tab"] {
-    background: transparent !important;
-    color: #6b7280 !important;
-    font-family: 'Syne', sans-serif !important;
-    font-weight: 600 !important;
-    border-radius: 9px !important;
-    padding: 0.5rem 1.2rem !important;
-    border: none !important;
-  }
-  .stTabs [aria-selected="true"] {
-    background: #1a1f2e !important;
-    color: #00e5a0 !important;
-  }
-
-  /* Barra de progresso de calorias */
   .progress-bar-bg {
-    background: #1a1f2e;
-    border-radius: 999px;
-    height: 8px;
-    margin-top: 0.4rem;
-    overflow: hidden;
+    background: #1a1f2e; border-radius: 999px; height: 8px;
+    margin-top: 0.4rem; overflow: hidden;
   }
   .progress-bar-fill {
-    height: 100%;
-    border-radius: 999px;
+    height: 100%; border-radius: 999px;
     background: linear-gradient(90deg, #00e5a0, #00b4d8);
     transition: width 0.5s ease;
   }
 
-  /* Date input */
-  .stDateInput > div > div > input {
-    background: #1a1f2e !important;
-    border: 1px solid #252d42 !important;
-    color: #e8eaf0 !important;
-    border-radius: 10px !important;
+  .stTextInput > div > div > input,
+  .stNumberInput > div > div > input,
+  .stTextArea > div > div > textarea {
+    background: #1a1f2e !important; border: 1px solid #252d42 !important;
+    border-radius: 10px !important; color: #e8eaf0 !important;
   }
-
-  /* Selectbox */
   div[data-baseweb="select"] > div {
-    background: #1a1f2e !important;
-    border-color: #252d42 !important;
-    color: #e8eaf0 !important;
+    background: #1a1f2e !important; border-color: #252d42 !important; color: #e8eaf0 !important;
+  }
+  [data-testid="stFileUploader"] {
+    background: #1a1f2e !important; border: 1px dashed #252d42 !important;
+    border-radius: 12px !important; padding: 0.3rem !important;
   }
 
-  /* Checkbox */
-  .stCheckbox label span { color: #d1d5db !important; }
+  .stButton > button {
+    background: linear-gradient(135deg, #00e5a0, #00b4d8) !important;
+    color: #0d0f14 !important; font-family: 'Syne', sans-serif !important;
+    font-weight: 700 !important; border: none !important;
+    border-radius: 10px !important; padding: 0.55rem 1.4rem !important;
+    font-size: 0.9rem !important; box-shadow: 0 0 20px rgba(0,229,160,0.15) !important;
+    transition: opacity 0.2s !important;
+  }
+  .stButton > button:hover { opacity: 0.85 !important; }
 
-  /* Divider */
+  .stTabs [data-baseweb="tab-list"] {
+    background: #161923 !important; border-radius: 12px !important;
+    padding: 4px !important; gap: 4px !important; border: 1px solid #1f2535 !important;
+  }
+  .stTabs [data-baseweb="tab"] {
+    background: transparent !important; color: #6b7280 !important;
+    font-family: 'Syne', sans-serif !important; font-weight: 600 !important;
+    border-radius: 9px !important; border: none !important;
+  }
+  .stTabs [aria-selected="true"] { background: #1a1f2e !important; color: #00e5a0 !important; }
+
   hr { border-color: #1f2535 !important; }
-
-  /* Scrollbar */
   ::-webkit-scrollbar { width: 5px; }
   ::-webkit-scrollbar-track { background: #0d0f14; }
   ::-webkit-scrollbar-thumb { background: #252d42; border-radius: 4px; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Dados ──────────────────────────────────────────────────────────────────
+# ── Estado e dados ──────────────────────────────────────────────────────────
 if "data" not in st.session_state:
     st.session_state.data = load_data()
 
-data = st.session_state.data
+data      = st.session_state.data
 today_str = str(date.today())
 
-# Garante entradas de hoje
-data["alimentacao"].setdefault(today_str, [])
-data["treinos"].setdefault(today_str, {"descricao": "", "concluido": False, "notas": ""})
+META_CALORIAS = 2500
+
+def total_kcal_dia(dia_str: str) -> float:
+    return sum(r["calorias"] for r in data["alimentacao"].get(dia_str, []))
+
+def media_semanal() -> float:
+    hoje   = date.today()
+    dias   = [(hoje - timedelta(days=i)).isoformat() for i in range(6, -1, -1)]
+    totais = [total_kcal_dia(d) for d in dias if d in data["alimentacao"]]
+    return round(sum(totais) / len(totais), 1) if totais else 0.0
 
 # ── Cabeçalho ──────────────────────────────────────────────────────────────
 col_h1, col_h2 = st.columns([3, 1])
@@ -254,81 +186,60 @@ with col_h1:
     st.markdown('<div class="hero-title">⚡ NutriFlow</div>', unsafe_allow_html=True)
     st.markdown('<div class="hero-sub">Diário pessoal de nutrição & treinos</div>', unsafe_allow_html=True)
 with col_h2:
-    selected_date = st.date_input("📅 Data", value=date.today(), label_visibility="collapsed")
-    selected_str = str(selected_date)
-    data["alimentacao"].setdefault(selected_str, [])
-    data["treinos"].setdefault(selected_str, {"descricao": "", "concluido": False, "notas": ""})
+    selected_date = st.date_input("Data", value=date.today(), label_visibility="collapsed")
+    selected_str  = str(selected_date)
+
+data["alimentacao"].setdefault(selected_str, [])
+data["treinos"].setdefault(selected_str, {"descricao": "", "concluido": False, "notas": "", "foto": ""})
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# ── Cálculos ───────────────────────────────────────────────────────────────
-META_CALORIAS = 2100
+# ── Métricas ────────────────────────────────────────────────────────────────
+kcal_hoje  = total_kcal_dia(selected_str)
+kcal_med   = media_semanal()
+pct_meta   = min(kcal_hoje / META_CALORIAS * 100, 100)
+treinos_7d = sum(
+    1 for i in range(7)
+    if data["treinos"].get((date.today() - timedelta(days=i)).isoformat(), {}).get("concluido")
+)
+cor = "#00e5a0" if pct_meta < 90 else ("#f59e0b" if pct_meta < 110 else "#f87171")
 
-def total_kcal_dia(dia_str: str) -> float:
-    return sum(r["calorias"] for r in data["alimentacao"].get(dia_str, []))
-
-def media_semanal() -> float:
-    hoje = date.today()
-    dias = [(hoje - timedelta(days=i)).isoformat() for i in range(6, -1, -1)]
-    totais = [total_kcal_dia(d) for d in dias if d in data["alimentacao"]]
-    return round(sum(totais) / len(totais), 1) if totais else 0.0
-
-kcal_hoje    = total_kcal_dia(selected_str)
-kcal_semana  = media_semanal()
-pct_meta     = min(kcal_hoje / META_CALORIAS * 100, 100)
-treinos_7d   = sum(1 for d in [(date.today() - timedelta(days=i)).isoformat() for i in range(7)]
-                   if data["treinos"].get(d, {}).get("concluido"))
-
-# ── Métricas do topo ───────────────────────────────────────────────────────
 c1, c2, c3, c4 = st.columns(4)
 with c1:
-    st.markdown(f"""
-    <div class="metric-box">
-      <div class="metric-value">{kcal_hoje:.0f}</div>
-      <div class="metric-label">kcal hoje</div>
-    </div>""", unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-box"><div class="metric-value">{kcal_hoje:.0f}</div><div class="metric-label">kcal hoje</div></div>', unsafe_allow_html=True)
 with c2:
-    st.markdown(f"""
-    <div class="metric-box">
-      <div class="metric-value accent-blue">{kcal_semana}</div>
-      <div class="metric-label">kcal média/semana</div>
-    </div>""", unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-box"><div class="metric-value accent-blue">{kcal_med}</div><div class="metric-label">média kcal / semana</div></div>', unsafe_allow_html=True)
 with c3:
-    st.markdown(f"""
-    <div class="metric-box">
-      <div class="metric-value accent-purple">{treinos_7d}/7</div>
-      <div class="metric-label">treinos na semana</div>
-    </div>""", unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-box"><div class="metric-value accent-purple">{treinos_7d}/7</div><div class="metric-label">treinos na semana</div></div>', unsafe_allow_html=True)
 with c4:
-    cor_meta = "#00e5a0" if pct_meta < 90 else ("#f59e0b" if pct_meta < 110 else "#f87171")
-    st.markdown(f"""
-    <div class="metric-box">
-      <div class="metric-value" style="color:{cor_meta}">{pct_meta:.0f}%</div>
-      <div class="metric-label">da meta ({META_CALORIAS} kcal)</div>
-    </div>""", unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-box"><div class="metric-value" style="color:{cor}">{pct_meta:.0f}%</div><div class="metric-label">da meta ({META_CALORIAS} kcal)</div></div>', unsafe_allow_html=True)
 
-# Barra de progresso
 st.markdown(f"""
 <div style="margin:1rem 0 1.5rem;">
   <div style="font-size:0.75rem;color:#6b7280;margin-bottom:0.3rem;">Progresso calórico do dia</div>
   <div class="progress-bar-bg">
-    <div class="progress-bar-fill" style="width:{pct_meta}%;background:linear-gradient(90deg,{cor_meta},{cor_meta}aa);"></div>
+    <div class="progress-bar-fill" style="width:{pct_meta}%;background:{cor};"></div>
   </div>
 </div>
 """, unsafe_allow_html=True)
 
-# ── Tabs principais ─────────────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════════════════
+# TABS
+# ════════════════════════════════════════════════════════════════════════════
 tab1, tab2, tab3 = st.tabs(["🥗  Alimentação", "🏋️  Treino", "📊  Histórico"])
 
-# ════════════════════════════════════════════════════════════════════════════
-# TAB 1 – ALIMENTAÇÃO
-# ════════════════════════════════════════════════════════════════════════════
+# ── TAB 1 — ALIMENTAÇÃO ─────────────────────────────────────────────────────
 with tab1:
     col_form, col_lista = st.columns([1, 1.3], gap="large")
 
     with col_form:
         st.markdown('<div class="card"><div class="card-title">➕ Registrar refeição</div>', unsafe_allow_html=True)
 
+        tipo_refeicao = st.selectbox(
+            "Tipo de refeição",
+            ["☀️ Café da manhã", "🍎 Lanche da manhã", "🍽️ Almoço",
+             "🍪 Lanche da tarde", "🌙 Jantar", "🌛 Ceia"]
+        )
         alimento   = st.text_input("Alimento / prato", placeholder="Ex: Arroz integral cozido")
         col_q, col_u = st.columns([2, 1])
         with col_q:
@@ -337,15 +248,27 @@ with tab1:
             unidade = st.selectbox("Unidade", ["g", "ml", "unid", "colher", "xícara"])
         calorias = st.number_input("Calorias (kcal)", min_value=0.0, step=1.0, value=0.0)
 
+        st.markdown('<div style="font-size:0.82rem;color:#6b7280;margin:0.6rem 0 0.2rem;">📷 Foto da refeição (opcional)</div>', unsafe_allow_html=True)
+        foto_refeicao = st.file_uploader(
+            "foto_ref", type=["jpg", "jpeg", "png", "webp"],
+            label_visibility="collapsed", key="upload_refeicao"
+        )
+        if foto_refeicao:
+            st.image(foto_refeicao, use_container_width=True)
+
         if st.button("Adicionar ✓", use_container_width=True):
             if alimento.strip():
-                registro = {
-                    "alimento": alimento.strip(),
+                foto_path = ""
+                if foto_refeicao:
+                    foto_path = save_photo(foto_refeicao, "refeicao", selected_str)
+                data["alimentacao"][selected_str].append({
+                    "alimento":   alimento.strip(),
+                    "tipo":       tipo_refeicao,
                     "quantidade": quantidade,
-                    "unidade": unidade,
-                    "calorias": calorias,
-                }
-                data["alimentacao"][selected_str].append(registro)
+                    "unidade":    unidade,
+                    "calorias":   calorias,
+                    "foto":       foto_path,
+                })
                 save_data(data)
                 st.success("Refeição registrada!", icon="✅")
                 st.rerun()
@@ -354,17 +277,16 @@ with tab1:
 
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # Macros rápidos (referência)
+        # Referência rápida
         st.markdown('<div class="card"><div class="card-title">📖 Referência rápida</div>', unsafe_allow_html=True)
-        referencias = {
+        for nome, kcal in {
             "Arroz branco cozido (100g)": 130,
-            "Frango grelhado (100g)": 165,
-            "Ovo inteiro (1 unid)": 78,
-            "Batata-doce cozida (100g)": 86,
-            "Aveia (40g)": 148,
-            "Whey protein (30g)": 120,
-        }
-        for nome, kcal in referencias.items():
+            "Frango grelhado (100g)":     165,
+            "Ovo inteiro (1 unid)":        78,
+            "Batata-doce cozida (100g)":   86,
+            "Aveia (40g)":                148,
+            "Whey protein (30g)":         120,
+        }.items():
             st.markdown(f"""
             <div style="display:flex;justify-content:space-between;padding:0.3rem 0;
                         border-bottom:1px solid #1f2535;font-size:0.82rem;">
@@ -374,44 +296,50 @@ with tab1:
         st.markdown('</div>', unsafe_allow_html=True)
 
     with col_lista:
-        refeicoes_dia = data["alimentacao"].get(selected_str, [])
-        st.markdown(f'<div class="card-title" style="font-family:Syne,sans-serif;font-weight:700;font-size:1.05rem;">🗓️ {selected_date.strftime("%d/%m/%Y")} — {len(refeicoes_dia)} item(ns) · {total_kcal_dia(selected_str):.0f} kcal</div>', unsafe_allow_html=True)
+        refeicoes = data["alimentacao"].get(selected_str, [])
+        st.markdown(
+            f'<div class="card-title">🗓️ {selected_date.strftime("%d/%m/%Y")} — '
+            f'{len(refeicoes)} item(ns) · {total_kcal_dia(selected_str):.0f} kcal</div>',
+            unsafe_allow_html=True
+        )
 
-        if not refeicoes_dia:
-            st.markdown('<div style="color:#4b5563;text-align:center;padding:3rem 0;font-size:0.9rem;">Nenhum registro para este dia.<br>Adicione sua primeira refeição →</div>', unsafe_allow_html=True)
+        if not refeicoes:
+            st.markdown('<div style="color:#4b5563;text-align:center;padding:3rem 0;font-size:0.9rem;">Nenhum registro para este dia.</div>', unsafe_allow_html=True)
         else:
-            for i, r in enumerate(refeicoes_dia):
-                col_item, col_del = st.columns([6, 1])
+            for i, r in enumerate(refeicoes):
+                col_item, col_del = st.columns([7, 1])
                 with col_item:
                     st.markdown(f"""
                     <div class="food-item">
                       <div>
+                        <div class="food-tipo">{r.get('tipo', '')}</div>
                         <div class="food-name">{r['alimento']}</div>
                         <div class="food-qty">{r['quantidade']} {r['unidade']}</div>
                       </div>
                       <div class="food-kcal">{r['calorias']:.0f} kcal</div>
                     </div>""", unsafe_allow_html=True)
+                    foto_p = r.get("foto", "")
+                    if foto_p and os.path.exists(foto_p):
+                        with st.expander("📷 Ver foto"):
+                            st.image(foto_p, use_container_width=True)
                 with col_del:
-                    if st.button("🗑️", key=f"del_food_{i}_{selected_str}", help="Remover"):
+                    if st.button("🗑️", key=f"del_food_{i}_{selected_str}"):
                         data["alimentacao"][selected_str].pop(i)
                         save_data(data)
                         st.rerun()
 
-        # Resumo do dia
-        if refeicoes_dia:
             st.markdown("<hr>", unsafe_allow_html=True)
             st.markdown(f"""
             <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;">
               <span style="color:#6b7280;font-size:0.85rem">Total do dia</span>
-              <span style="font-family:Syne,sans-serif;font-size:1.4rem;font-weight:800;color:#00e5a0">{total_kcal_dia(selected_str):.0f} kcal</span>
+              <span style="font-family:Syne,sans-serif;font-size:1.4rem;font-weight:800;color:#00e5a0">
+                {total_kcal_dia(selected_str):.0f} kcal
+              </span>
             </div>""", unsafe_allow_html=True)
 
-# ════════════════════════════════════════════════════════════════════════════
-# TAB 2 – TREINO
-# ════════════════════════════════════════════════════════════════════════════
+# ── TAB 2 — TREINO ──────────────────────────────────────────────────────────
 with tab2:
     col_tf, col_tl = st.columns([1, 1.2], gap="large")
-
     treino_dia = data["treinos"][selected_str]
 
     with col_tf:
@@ -424,22 +352,36 @@ with tab2:
             "Full Body", "HIIT / Cardio", "Funcional",
             "Mobilidade / Alongamento", "Descanso", "Outro",
         ]
-        idx_atual = 0
-        if treino_dia.get("descricao") in grupos:
-            idx_atual = grupos.index(treino_dia["descricao"])
-
-        descricao = st.selectbox("Grupo muscular / tipo", grupos, index=idx_atual)
-        notas     = st.text_area("Observações / exercícios realizados",
-                                  value=treino_dia.get("notas", ""),
-                                  placeholder="Ex: Supino 4x10 80kg, Crucifixo 3x12…",
-                                  height=120)
+        idx       = grupos.index(treino_dia["descricao"]) if treino_dia.get("descricao") in grupos else 0
+        descricao = st.selectbox("Grupo muscular / tipo", grupos, index=idx)
+        notas     = st.text_area(
+            "Observações / exercícios realizados",
+            value=treino_dia.get("notas", ""),
+            placeholder="Ex: Supino 4x10 80kg, Crucifixo 3x12…",
+            height=130
+        )
         concluido = st.checkbox("✅ Treino concluído", value=treino_dia.get("concluido", False))
 
+        st.markdown('<div style="font-size:0.82rem;color:#6b7280;margin:0.6rem 0 0.2rem;">📷 Foto do treino (opcional)</div>', unsafe_allow_html=True)
+        foto_treino = st.file_uploader(
+            "foto_tr", type=["jpg", "jpeg", "png", "webp"],
+            label_visibility="collapsed", key="upload_treino"
+        )
+        if foto_treino:
+            st.image(foto_treino, use_container_width=True)
+        elif treino_dia.get("foto") and os.path.exists(treino_dia.get("foto", "")):
+            st.markdown('<div style="font-size:0.78rem;color:#6b7280;margin-bottom:0.3rem;">Foto salva:</div>', unsafe_allow_html=True)
+            st.image(treino_dia["foto"], use_container_width=True)
+
         if st.button("Salvar treino", use_container_width=True):
+            foto_path = treino_dia.get("foto", "")
+            if foto_treino:
+                foto_path = save_photo(foto_treino, "treino", selected_str)
             data["treinos"][selected_str] = {
                 "descricao": descricao if descricao != "— Selecione —" else "",
-                "notas": notas,
+                "notas":     notas,
                 "concluido": concluido,
+                "foto":      foto_path,
             }
             save_data(data)
             st.success("Treino salvo!", icon="💪")
@@ -447,71 +389,103 @@ with tab2:
 
         st.markdown('</div>', unsafe_allow_html=True)
 
+    # ── 30 dias a partir de hoje ─────────────────────────────────────────
     with col_tl:
-        st.markdown('<div class="card-title" style="font-family:Syne,sans-serif;font-weight:700;font-size:1.05rem;">📅 Últimos 14 dias</div>', unsafe_allow_html=True)
+        st.markdown('<div class="card-title">📅 Próximos 30 dias — planejamento</div>', unsafe_allow_html=True)
 
         hoje = date.today()
-        for i in range(13, -1, -1):
-            d = hoje - timedelta(days=i)
+        semanas_pt = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
+
+        for i in range(30):
+            d     = hoje + timedelta(days=i)
             d_str = d.isoformat()
-            t = data["treinos"].get(d_str, {})
-            desc  = t.get("descricao") or "—"
-            ok    = t.get("concluido", False)
-            label = "✓ Concluído" if ok else ("· Não registrado" if not t.get("descricao") else "✗ Não concluído")
-            cls   = "treino-ok" if ok else "treino-miss"
-            dia_label = "Hoje" if i == 0 else ("Ontem" if i == 1 else d.strftime("%d/%m"))
+            data["treinos"].setdefault(d_str, {"descricao": "", "concluido": False, "notas": "", "foto": ""})
+
+            t        = data["treinos"][d_str]
+            desc     = t.get("descricao") or "—"
+            ok       = t.get("concluido", False)
+            tem_foto = t.get("foto") and os.path.exists(t.get("foto", ""))
+            semana   = semanas_pt[d.weekday()]
+
+            if i == 0:
+                dia_l    = "Hoje"
+                cls_card = "treino-hoje"
+            elif i == 1:
+                dia_l    = "Amanhã"
+                cls_card = ""
+            else:
+                dia_l    = d.strftime("%d/%m")
+                cls_card = ""
+
+            if ok:
+                label     = "✓ Concluído"
+                cls_label = "treino-ok"
+            elif t.get("descricao"):
+                label     = "· Planejado"
+                cls_label = "treino-miss"
+            else:
+                label     = "· Vazio"
+                cls_label = "treino-miss"
+
+            foto_icon = " 📷" if tem_foto else ""
+
             st.markdown(f"""
-            <div class="treino-item">
+            <div class="treino-item {cls_card}">
               <div>
-                <div style="font-size:0.8rem;color:#6b7280">{dia_label}</div>
-                <div style="color:#d1d5db;font-weight:500;font-size:0.88rem">{desc}</div>
+                <div style="font-size:0.78rem;color:#6b7280">{dia_l} · {semana}</div>
+                <div style="color:#d1d5db;font-weight:500;font-size:0.88rem">{desc}{foto_icon}</div>
               </div>
-              <span class="{cls}">{label}</span>
+              <span class="{cls_label}">{label}</span>
             </div>""", unsafe_allow_html=True)
 
-# ════════════════════════════════════════════════════════════════════════════
-# TAB 3 – HISTÓRICO / ANALYTICS
-# ════════════════════════════════════════════════════════════════════════════
+# ── TAB 3 — HISTÓRICO ───────────────────────────────────────────────────────
 with tab3:
-    st.markdown('<div class="card-title" style="font-family:Syne,sans-serif;font-weight:700;font-size:1.05rem;">📊 Histórico calórico — últimos 30 dias</div>', unsafe_allow_html=True)
+    st.markdown('<div class="card-title">📊 Histórico calórico — últimos 30 dias</div>', unsafe_allow_html=True)
 
-    hoje = date.today()
-    dias_30    = [(hoje - timedelta(days=i)).isoformat() for i in range(29, -1, -1)]
-    kcal_30    = [total_kcal_dia(d) for d in dias_30]
-    labels_30  = [(hoje - timedelta(days=i)).strftime("%d/%m") for i in range(29, -1, -1)]
+    hoje    = date.today()
+    dias_30 = [(hoje - timedelta(days=i)).isoformat() for i in range(29, -1, -1)]
+    labels  = [(hoje - timedelta(days=i)).strftime("%d/%m")  for i in range(29, -1, -1)]
+    kcal_30 = [total_kcal_dia(d) for d in dias_30]
 
-    # Gráfico de barras nativo do Streamlit (sem dependência extra)
-    import pandas as pd
-    df_chart = pd.DataFrame({"Data": labels_30, "kcal": kcal_30})
-    df_chart = df_chart.set_index("Data")
+    df_chart = pd.DataFrame({"kcal": kcal_30}, index=labels)
     st.bar_chart(df_chart, height=260, color="#00e5a0")
 
     st.markdown("<br>", unsafe_allow_html=True)
-
-    # Tabela resumida
-    st.markdown('<div class="card-title" style="font-family:Syne,sans-serif;font-weight:700;font-size:1.05rem;">📋 Resumo diário detalhado</div>', unsafe_allow_html=True)
+    st.markdown('<div class="card-title">📋 Resumo diário detalhado</div>', unsafe_allow_html=True)
 
     rows = []
     for d_str in reversed(dias_30):
         kcal = total_kcal_dia(d_str)
-        if kcal == 0 and not data["treinos"].get(d_str, {}).get("descricao"):
+        t    = data["treinos"].get(d_str, {})
+        if kcal == 0 and not t.get("descricao"):
             continue
-        treino_d = data["treinos"].get(d_str, {})
         rows.append({
-            "Data": d_str,
-            "Kcal": f"{kcal:.0f}",
+            "Data":      d_str,
+            "Kcal":      f"{kcal:.0f}",
             "Refeições": len(data["alimentacao"].get(d_str, [])),
-            "Treino": treino_d.get("descricao") or "—",
-            "Concluído": "✓" if treino_d.get("concluido") else "✗",
+            "Treino":    t.get("descricao") or "—",
+            "Concluído": "✓" if t.get("concluido") else "✗",
+            "Foto":      "📷" if (t.get("foto") and os.path.exists(t.get("foto", ""))) else "",
         })
 
     if rows:
-        df_tab = pd.DataFrame(rows)
-        st.dataframe(df_tab, use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
     else:
-        st.markdown('<div style="color:#4b5563;text-align:center;padding:2rem;font-size:0.9rem;">Sem dados registrados nos últimos 30 dias.</div>', unsafe_allow_html=True)
+        st.markdown('<div style="color:#4b5563;text-align:center;padding:2rem;">Sem dados nos últimos 30 dias.</div>', unsafe_allow_html=True)
 
-    # Exportar dados
+    # Galeria de fotos
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown('<div class="card-title">🖼️ Galeria de fotos</div>', unsafe_allow_html=True)
+
+    fotos = sorted(PHOTOS_DIR.glob("*.*"), reverse=True)
+    if fotos:
+        cols_g = st.columns(4)
+        for idx, fp in enumerate(fotos):
+            with cols_g[idx % 4]:
+                st.image(str(fp), use_container_width=True, caption=fp.stem[:22])
+    else:
+        st.markdown('<div style="color:#4b5563;text-align:center;padding:1.5rem;font-size:0.88rem;">Nenhuma foto registrada ainda.</div>', unsafe_allow_html=True)
+
     st.markdown("<br>", unsafe_allow_html=True)
     with open(DATA_FILE, "r", encoding="utf-8") as f:
         raw_json = f.read()
@@ -522,10 +496,11 @@ with tab3:
         mime="application/json",
     )
 
-# ── Rodapé ─────────────────────────────────────────────────────────────────
+# ── Rodapé ──────────────────────────────────────────────────────────────────
 st.markdown("""
-<div style="text-align:center;color:#374151;font-size:0.75rem;margin-top:3rem;padding:1rem 0;
-            border-top:1px solid #1f2535;">
-  ⚡ NutriFlow · Todos os dados salvos localmente em <code style="color:#4b5563">nutriflow_data.json</code>
+<div style="text-align:center;color:#374151;font-size:0.75rem;
+            margin-top:3rem;padding:1rem 0;border-top:1px solid #1f2535;">
+  ⚡ NutriFlow · Dados em <code style="color:#4b5563">nutriflow_data.json</code>
+  · Fotos em <code style="color:#4b5563">nutriflow_fotos/</code>
 </div>
 """, unsafe_allow_html=True)

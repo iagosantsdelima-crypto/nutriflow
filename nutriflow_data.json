@@ -1,4 +1,18 @@
 {
-  "alimentacao": {},
-  "treinos": {}
+  "alimentacao": {
+    "2026-04-28": [],
+    "2026-04-29": []
+  },
+  "treinos": {
+    "2026-04-28": {
+      "descricao": "Full Body",
+      "notas": "",
+      "concluido": true
+    },
+    "2026-04-29": {
+      "descricao": "Peito e Tríceps",
+      "notas": "",
+      "concluido": true
+    }
+  }
 }
