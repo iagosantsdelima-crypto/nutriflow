@@ -1,0 +1,19 @@
+{
+  "usuarios": {
+    "iago": {
+      "senha": "389e7a0ef4658fc9569aaf60377d36e4082f65f56ffc9d4a5fb79049e177aed3",
+      "nome": "iago santos de lima",
+      "perfil": {
+        "peso": 138.0,
+        "altura": 175,
+        "idade": 23,
+        "sexo": "Masculino",
+        "atividade": "Levemente ativo (1-3x/semana)"
+      },
+      "objetivo": "Perda agressiva (-1kg/sem)",
+      "meta_calorias": 2250,
+      "alimentacao": {},
+      "treinos": {}
+    }
+  }
+}
