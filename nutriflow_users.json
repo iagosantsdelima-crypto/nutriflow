@@ -8,12 +8,230 @@
         "altura": 175,
         "idade": 23,
         "sexo": "Masculino",
-        "atividade": "Levemente ativo (1-3x/semana)"
+        "atividade": "Sedentario (sem exercicio)"
       },
       "objetivo": "Perda agressiva (-1kg/sem)",
-      "meta_calorias": 2250,
-      "alimentacao": {},
-      "treinos": {}
+      "meta_calorias": 1836,
+      "alimentacao": {
+        "2026-04-29": [
+          {
+            "nome": "Arroz branco cozido",
+            "alimento": "Arroz branco cozido",
+            "tipo": "🍽️ Almoco",
+            "quantidade": 80.0,
+            "unidade": "g",
+            "kcal": 104.0,
+            "p": 2.2,
+            "c": 22.4,
+            "g": 0.2,
+            "foto": "",
+            "comentario": ""
+          },
+          {
+            "nome": "Frango grelhado peito",
+            "alimento": "Frango grelhado peito",
+            "tipo": "🍽️ Almoco",
+            "quantidade": 120.0,
+            "unidade": "g",
+            "kcal": 198.0,
+            "p": 37.2,
+            "c": 0.0,
+            "g": 4.3,
+            "foto": "",
+            "comentario": ""
+          }
+        ]
+      },
+      "treinos": {
+        "2026-04-29": {
+          "descricao": "Peito e Triceps",
+          "notas": "",
+          "concluido": true,
+          "foto": ""
+        },
+        "2026-04-30": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-01": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-02": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-03": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-04": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-05": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-06": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-07": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-08": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-09": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-10": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-11": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-12": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-13": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-14": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-15": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-16": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-17": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-18": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-19": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-20": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-21": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-22": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-23": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-24": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-25": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-26": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-27": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        },
+        "2026-05-28": {
+          "descricao": "",
+          "concluido": false,
+          "notas": "",
+          "foto": ""
+        }
+      },
+      "favoritos": [],
+      "conquistas": [
+        "primeiro_registro",
+        "modo_rapido"
+      ],
+      "reacoes": {},
+      "usou_modo_rapido": true,
+      "usou_social_share": false
     }
   }
 }
